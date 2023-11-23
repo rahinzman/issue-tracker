@@ -9,10 +9,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import prisma from "@/prisma";
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios, { AxiosResponse } from "axios";
-// import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
@@ -28,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import StatusStyle from "@/components/status-style";
+import { useRouter } from "next/navigation";
 
 const FormSchema = z.object({
   title: z.string().min(2, {
@@ -42,7 +41,7 @@ const FormSchema = z.object({
 });
 
 const EditIssue = ({ searchParams }: { searchParams: { id: string } }) => {
-  // const router = useRouter();
+  const router = useRouter();
   const [data, setData] = useState<issuesTypeI>();
   useEffect(() => {
     const uniqueIssue = async () => {
@@ -63,19 +62,40 @@ const EditIssue = ({ searchParams }: { searchParams: { id: string } }) => {
     values: {
       title: data?.title || "",
       description: data?.description || "",
-      status: data?.status || ""
+      status: data?.status || "",
     },
   });
 
-  const onSubmit = async (data: z.infer<typeof FormSchema>) => {
-    console.log(data)
+  const onUpdate = async (data: z.infer<typeof FormSchema>) => {
+    try {
+      await axios
+        .post(`/api/auth/updateIssue?id=${searchParams.id}`, data)
+        .then((res: AxiosResponse) => console.log(res))
+        .catch((err: Error) => {
+          console.log(err);
+        });
+      router.push("/issues");
+    } catch (error) {
+      console.log(error);
+    }
+  };
+  const Delete = async () => {
+    try {
+      await axios
+        .delete(`/api/auth/deleteIssue?id=${searchParams.id}`)
+        .then(() => console.log(`Issue Deleted`))
+        .catch((err: Error) => console.log(err));
+        router.push("/issues");
+    } catch (error) {
+      console.log(error);
+    }
   };
   return (
     <div className="flex flex-col items-center justify-center h-screen -mt-20">
       <h1 className="text-3xl font-bold">Edit Issue</h1>
       <Form {...form}>
         <form
-          onSubmit={form.handleSubmit(onSubmit)}
+          onSubmit={form.handleSubmit(onUpdate)}
           className="w-2/3 space-y-6"
         >
           <div className="flex justify-between items-center">
@@ -86,7 +106,11 @@ const EditIssue = ({ searchParams }: { searchParams: { id: string } }) => {
                 <FormItem>
                   <FormLabel>Title</FormLabel>
                   <FormControl>
-                    <Input placeholder="Title" {...field} className="w-[42rem]"/>
+                    <Input
+                      placeholder="Title"
+                      {...field}
+                      className="w-[42rem]"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -98,13 +122,17 @@ const EditIssue = ({ searchParams }: { searchParams: { id: string } }) => {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Status</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
                     <SelectTrigger className="w-[180px]">
-                    <SelectValue 
-                      placeholder={<StatusStyle status={field.value}/>}/>
+                      <SelectValue
+                        placeholder={<StatusStyle status={field.value} />}
+                      />
                     </SelectTrigger>
-                    <SelectContent >
-                      <SelectItem  value={'Open'}>
+                    <SelectContent>
+                      <SelectItem value={"Open"}>
                         <StatusStyle status="Open" />{" "}
                       </SelectItem>
                       <SelectItem value="Closed">
@@ -133,9 +161,12 @@ const EditIssue = ({ searchParams }: { searchParams: { id: string } }) => {
               </FormItem>
             )}
           />
-          
-          <div className="flex justify-end">
-            <Button type="submit" >Update</Button>
+
+          <div className="flex justify-between">
+            <Button className="bg-rose-600 hover:bg-rose-500" onClick={Delete}>
+              Delete
+            </Button>
+            <Button type="submit">Update</Button>
           </div>
         </form>
       </Form>
